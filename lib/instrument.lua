@@ -1,9 +1,9 @@
-local Drum={}
+local Instrument={}
 local script_name="zeitgeist"
 local path_to_audio=_path.audio..script_name.."/"
-local default_sample=path_to_audio.."_default/wa_tanzbar_kick_01.wav"
+local default_sample=path_to_audio.."zeitgeist/prophet5_lead_48.wav"
 
-function Drum:new(o)
+function Instrument:new(o)
   -- boilerplate
   o=o or {}
   setmetatable(o,self)
@@ -15,9 +15,21 @@ function Drum:new(o)
   o.velocity_ramp = o.velocity_ramp or 0
   o.probabilty = o.probabilty or 100 
   o.frozen = o.frozen or false
-  o.riddim = o.riddim or "x---"
   o.accent = o.accent or "----"
-  o.kind = o.kind or "drum"
+  o.kind = o.kind or "instrument"
+  o.root = o.root or 48
+  o.scale = o.scale or "Minor"
+  o.amp = o.amp or 1
+  o.amp_lag = o.amp_lag or 0
+  o.sample_start = o.sample_start or 0
+  o.sample_end = o.sample_end or 1
+  o.loop = o.loop or 0
+  o.rate = o.rate or 1
+  o.trig = o.trig or 1
+  o.attack = o.attack or 0.1
+  o.decay = o.decay or 2
+  o.release = o.release or 2
+
   -- TODO: https://sumire-io.gitlab.io/midi-velocity-curve-generator/
   o.velocity_curve={}
   o.velocity_curve[1]={}
@@ -38,43 +50,47 @@ function Drum:new(o)
 end
 
 
-function Drum:play()
+function Instrument:play(r)
   -- print(self.sample)
   local path = self.sample
   -- local amp = self.velocity_curve[1][self.velocity+1]
   -- if self.velocity_ramp > 0 then 
   --   amp = (self.beat % self.velocity_ramp)/self.velocity_ramp
   -- end
-  local amp = 1
-  local amp_lag = 0
-  local sample_start = 0
-  local sample_end = 1
-  local loop = 0
-  local rate = 1
-  local trig = 1
-  engine.play(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig)
+  local rate = r or self.rate
+  local amp = self.amp
+  local amp_lag = self.amp_lag
+  local sample_start = self.sample_start
+  local sample_end = self.sample_end
+  local loop = self.loop
+  local rate = r or self.rate
+  local trig = self.trig
+  local attack = self.attack
+  local decay = self.decay
+  local release = self.release
+  engine.play2(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig, attack, decay, release)
 end
+-- function Instrument:emit(beat)
+--   self.beat=beat
+--   -- TODO: check if sample is defined
+--   if self.sample==nil then 
+--     print("no sample")
+--     do return end
+--   end
+--   -- TODO: check probabilty
+--   if self.probabilty~=100 then
+--     -- do something if probability isn't 100
+--   end
+--   -- hold TODO: check swing, and change swing if needed
+--   if self:xox(beat) then 
+--     -- self:play(self.sample) – Q: is this suppposed to be enabled?
+--     return true -- not what was intended, but I'm going with it for right now for the sake of progress
+--   end
+-- end
 
-function Drum:emit(beat)
-  self.beat=beat
-  -- TODO: check if sample is defined
-  if self.sample==nil then 
-    print("no sample")
-    do return end
-  end
-  -- TODO: check probabilty
-  if self.probabilty~=100 then
-    -- do something if probability isn't 100
-  end
-  -- hold TODO: check swing, and change swing if needed
-  if self:xox(beat) then 
-    -- self:play(self.sample) – Q: is this suppposed to be enabled?
-    return true -- not what was intended, but I'm going with it for right now for the sake of progress
-  end
-end
+-- function Instrument:xox(beat)
+--   beat=((beat-1)%#self.riddim)+1
+--   return self.riddim:sub(beat,beat)~='-'
+-- end
 
-function Drum:xox(beat)
-  beat=((beat-1)%#self.riddim)+1
-  return self.riddim:sub(beat,beat)~='-'
-end
-return Drum
+return Instrument
