@@ -29,6 +29,7 @@ function Instrument:new(o)
   o.attack = o.attack or 0.1
   o.decay = o.decay or 2
   o.release = o.release or 2
+  o.play_style = o.play_style or "chords"
 
   -- TODO: https://sumire-io.gitlab.io/midi-velocity-curve-generator/
   o.velocity_curve={}
@@ -49,8 +50,45 @@ function Instrument:new(o)
   return o
 end
 
+function Instrument:play(notes)
+  if self.play_style=="chords" then
+    for _,note in ipairs(notes) do
+      print(self.root,note)
+      local r=self:transpose_to_intonation(self.root,note)
+      self:play_note(r)
+    end
+  elseif self.play_style=="root" then
+    table.sort(notes)
+    local note=notes[1]
+    print(self.root,note)
+    local r=self:transpose_to_intonation(self.root,note)
+    self:play_note(r)
+  end
+end
 
-function Instrument:play(r)
+
+-- transpose_to_rate tranposes note1 to note2 as intonation
+function Instrument:transpose_to_intonation(note1,note2)
+  -- transpose note1 into note2 using rates
+  local rate=1
+
+  -- https://github.com/monome/norns/blob/main/lua/lib/intonation.lua#L16
+  local ints={1/1,16/15,9/8,6/5,5/4,4/3,45/32,3/2,8/5,5/3,16/9,15/8}
+
+  while note2-note1>11 or note1>note2 do
+    if note1<note2 then
+      rate=rate*2
+      note1=note1+12
+    elseif note1>note2 then
+      rate=rate*0.5
+      note1=note1-12
+    end
+  end
+  return rate*ints[note2-note1+1]
+end
+
+
+function Instrument:play_note(r)
   -- print(self.sample)
   local path = self.sample
   -- local amp = self.velocity_curve[1][self.velocity+1]

@@ -87,16 +87,29 @@ drums.techno.bpm={120,125,130,135,140,145}  -- 120-140BPM
 drums.techno.instruments={}
 drums.techno.instruments={
   accent=Drum:new({kind="accent",riddim="x--"}),
-  bass=Instrument:new({sample=_path.audio.."zeitgeist/juno_bass_24.wav"}),
+  bass=Instrument:new({play_style="root",sample=_path.audio.."zeitgeist/juno_bass_24.wav",pattern=sequins{"i", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor',division=1}),
+  -- TODO: have a switch for how the instrument responds to chords
+  -- TODO: example: bass plays the root note
+  -- TODO: melody arp? random?
+  -- TODO: chords: all notes
   bd=Drum:new({riddim="x---x---x---x-x-",velocity=80}),
   sd=Drum:new({riddim="----x-------x---",velocity=80,sample=_path.audio.."zeitgeist/_default/wa_tanzbar_snare_01.wav"}),
   oh=Drum:new({riddim="--x---x---x---x-",velocity=80,sample=_path.audio.."zeitgeist/_default/wa_tanzbar_hihat_01.wav"}),
   ch=Drum:new({riddim="---------x------",velocity=80,sample=_path.audio.."zeitgeist/_default/wa_tanzbar_hihat_01.wav"})
 }
-drums.techno.phrases={
-  {pattern=sequins{"i", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor'},
-  {pattern=sequins{"ii", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor'},
-}
+-- FUTURE:
+-- riddim={ 
+--   Rhythm{er={8,2,4},division=1/4},
+--   Rhythm{er={16,3,4},division=1/8}, -- er(16,3,4) converts to "--x---x---x"
+--   Rhythm{riddim="x-----x",division=1/8},
+-- }
+-- riddim=sequins{ -- TODO write the er function total steps, # of steps, shift 
+-- https://github.com/monome/norns/blob/main/lua/lib/er.lua
+--   Rhythm{er={8,2,4},division=1/4}, -- Rhythm returns sequins
+--   Rhythm{er={16,3,4},division=1/8}, -- er(16,3,4) converts to "--x---x---x"
+--   Rhythm{riddim="x-----x",division=1/8},
+-- }
+
 drums.techno.samples={}
 drums.techno.pattern={}
 table.insert(drums.techno.pattern,{
@@ -190,15 +203,12 @@ drums.vaporwave={}
 drums.vaporwave.bpm={90,95,100,105,110} 
 drums.vaporwave.instruments={
   accent=Drum:new({kind="accent",riddim="x--"}),
-  lead=Instrument:new({sample=_path.audio.."zeitgeist/prophet5_lead_48.wav",decay=0.25,release=0.25}),
+  lead=Instrument:new({sample=_path.audio.."zeitgeist/prophet5_lead_48.wav",decay=0.25,release=0.25,pattern=sequins{sequins{"i"}:count(4), sequins{"III"}:count(4), sequins{"IV", "V"}:count(4), sequins{"VI", "V"}:count(4)},root=48,scale='Minor',division=1/4}),
+  -- TODO: (future) instead of setting sequins here, define pattern as {"i,"III",{"IV","V"}} and have Instrument class figure out the sequins (:count(??))
   bd=Drum:new({riddim="x---x---x---x---",velocity=80}),
   sd=Drum:new({riddim="----x-------x-------x-------x-x-",velocity=80,sample="/home/we/dust/audio/zeitgeist/_default/wa_tanzbar_snare_01.wav"}),
   ch=Drum:new({riddim="--x---x---x---x-",velocity=80,sample="/home/we/dust/audio/zeitgeist/_default/wa_tanzbar_hihat_01.wav"}),
   cp=Drum:new({riddim="-------------------------x------",velocity=80,sample="/home/we/dust/audio/zeitgeist/_default/wa_tanzbar_clap_01.wav"})
-}
-drums.vaporwave.phrases={
-  {pattern=sequins{"i", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor'},
-  {pattern=sequins{"ii", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor'},
 }
 drums.vaporwave.samples={}
 drums.vaporwave.pattern={} 
@@ -258,15 +268,15 @@ function notsurewhattocallthis()
      if di[instrument] and drums[random_genre]["samples"][random_kit_fix][instrument] then  
           local random_sample = randomInstrumentSample(drums[random_genre]["samples"][random_kit_fix][instrument])
         drums.current[instrument]=di[instrument] --bug: related to above, but causes other problems when moved out of if clause
-        for type,_ in pairs(drums.current) do
-          if instrument==type then
+        for kind,_ in pairs(drums.current) do
+          if instrument==kind then
             if di[instrument].kind=="drum" and dp[instrument] then
               drums.current[instrument].sample=random_sample
               drums.current[instrument].riddim=dp[instrument]
               print("sample used:",drums.current[instrument].sample)
               print("pattern:",drums.current[instrument].riddim)
             elseif di[instrument].kind=="instrument" then
-                drums.current[instrument].phrase=drums[random_genre].phrases[1] --TO DO: update this to randomize
+                --drums.current[instrument]=drums[random_genre].phrases[1] --TO DO: update this to randomize
                 -- tab.print(drums.current[instrument].phrase)
             end
           end
@@ -351,26 +361,6 @@ function init()
   end)
 end
 
--- transpose_to_rate tranposes note1 to note2 as intonation
-function transpose_to_intonation(note1,note2)
-  -- transpose note1 into note2 using rates
-  local rate=1
-
-  -- https://github.com/monome/norns/blob/main/lua/lib/intonation.lua#L16
-  local ints={1/1,16/15,9/8,6/5,5/4,4/3,45/32,3/2,8/5,5/3,16/9,15/8}
-
-  while note2-note1>11 or note1>note2 do
-    if note1<note2 then
-      rate=rate*2
-      note1=note1+12
-    elseif note1>note2 then
-      rate=rate*0.5
-      note1=note1-12
-    end
-  end
-  return rate*ints[note2-note1+1]
-end
-
 function start_zeitgeist()
   for genre,_ in pairs(drums) do
     if genre~="current" then
@@ -391,35 +381,36 @@ function start_zeitgeist()
  
   for i=0,10 do
       local beat=0
-      local division=1/16 
-      if i==0 then -- bug: the vaporwave chords sometimes fire too quickly or not at all
-        division=1
-      end
+      local division=1/16
+      local current_chord=nil
       pattern_instrument[i]=my_lattice:new_pattern{
       action=function(t)
           beat=beat+1
           local pattern_id=-1
           local ordering={}
-          for instrument,_ in pairs(drums.current) do
+          for instrument,_ in pairs(drums.current) do -- TODO change instrument to index
             table.insert(ordering,instrument)
           end
           table.sort(ordering)
           for _,instrument in ipairs(ordering) do
             pattern_id=pattern_id+1              
-            -- if pattern_id==0 then 
-            --   -- this is a chord change pattern
-            -- else
             if drums.current[instrument].kind=="instrument" and pattern_id==i then 
+              if pattern_instrument[i].division~=drums.current[instrument].division then 
+                pattern_instrument[i]:set_division(drums.current[instrument].division)
+              end
               -- tab.print(drums.current[instrument])
               -- notes_in_current_chord=MusicUtil.generate_chord_roman(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].phrase())
-              notes_in_current_chord=MusicUtil.generate_chord_roman(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].phrase.pattern())
+              notes_in_current_chord=MusicUtil.generate_chord_roman(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].pattern())
               tab.print(notes_in_current_chord)
-              for _,note in pairs(notes_in_current_chord) do
-                -- local r = drums.current[instrument].root / note
-                local r=transpose_to_intonation(drums.current[instrument].root,note)
-                drums.current[instrument]:play(r)
-              end
-              print("instrument:",drums.current[instrument].sample)
+              -- TODO: need to send all the notes at the same time to make sure the instrument can figure
+              drums.current[instrument]:play(notes_in_current_chord)
+              
+              -- for _,note in pairs(notes_in_current_chord) do
+              --   -- local r = drums.current[instrument].root / note
+              --   local r=transpose_to_intonation(drums.current[instrument].root,note)
+              --   drums.current[instrument]:play(r)
+              -- end
+              -- print("instrument:",drums.current[instrument].sample)
               -- print(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].phrases[1])
             elseif drums.current[instrument].kind=="drum" and drums.current[instrument]:emit(beat)==true and pattern_id==i then 
             -- (if swing is different) SET swing here:

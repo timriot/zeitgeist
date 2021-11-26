@@ -98,7 +98,8 @@ function Lattice:pulse()
       table.insert(ordered,instrument)
     end
     table.sort(ordered)
-    for id, pattern in ipairs(ordered) do
+    for id, _ in ipairs(ordered) do
+      pattern=self.pattern[id]
     -- for id, pattern in pairs(self.patterns) do
       if pattern.enabled then
         pattern.phase = pattern.phase + 1
