@@ -20,8 +20,9 @@ function Instrument:new(o)
   o.root = o.root or 48
   o.scale = o.scale or "Minor"
   o.amp = o.amp or 1
-  o.amp_lag = o.amp_lag or 0
+  o.amp_lag = o.amp_lag or 0.01
   o.sample_start = o.sample_start or 0
+  -- TODO: fake round robin sampling by changing the sample start time slightly
   o.sample_end = o.sample_end or 1
   o.loop = o.loop or 0
   o.rate = o.rate or 1
@@ -30,6 +31,16 @@ function Instrument:new(o)
   o.decay = o.decay or 2
   o.release = o.release or 2
   o.play_style = o.play_style or "chords"
+  if o.play_style=="chords" then 
+    o.play_sequence=sequins{{1,2,3}}
+    o.play_adj=sequins{0}
+  elseif o.play_style=="bass" then
+    o.play_sequence=sequins{1}
+    o.play_adj=sequins{-12,0}
+  elseif o.play_style=="arp" then 
+    o.play_sequence=sequins{1,2,3}
+    o.play_adj=sequins{0,0,12,0}
+  end
 
   -- TODO: https://sumire-io.gitlab.io/midi-velocity-curve-generator/
   o.velocity_curve={}
@@ -51,19 +62,30 @@ function Instrument:new(o)
 end
 
 function Instrument:play(notes)
-  if self.play_style=="chords" then
-    for _,note in ipairs(notes) do
-      print(self.root,note)
-      local r=self:transpose_to_intonation(self.root,note)
-      self:play_note(r)
-    end
-  elseif self.play_style=="root" then
-    table.sort(notes)
-    local note=notes[1]
-    print(self.root,note)
-    local r=self:transpose_to_intonation(self.root,note)
+  -- TODO: in the future, maybe need to have chords generated over several octaves (i.e. more than 3 notes)
+  -- right now assume only three notes
+  local note_indices_to_play=self.play_sequence()
+  -- convert to table if not table
+  if type(note_indices_to_play)~="table" then 
+    note_indices_to_play={note_indices_to_play}
+  end
+  for _, note_index in ipairs(note_indices_to_play) do
+    local r=self:transpose_to_intonation(self.root,notes[note_index]+self.play_adj())
     self:play_note(r)
   end
+  -- if self.play_style=="chords" then
+  --   for _,note in ipairs(notes) do
+  --     print(self.root,note)
+  --     
+  --     self:play_note(r)
+  --   end
+  -- elseif self.play_style=="root" then
+  --   table.sort(notes)
+  --   local note=notes[1]
+  --   print(self.root,note)
+  --   local r=self:transpose_to_intonation(self.root,note)
+  --   self:play_note(r)
+  -- end
 end
 
 

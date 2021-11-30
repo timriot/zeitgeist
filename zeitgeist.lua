@@ -9,11 +9,12 @@
 --
 -- ?
 
+sequins=require("sequins")
 local Drum=include("lib/drum")
 local Instrument=include("lib/instrument")
-local sequins=require("sequins")
+local lattice=include("lib/lattice")
+local Euclid=require("lib/er")
 local MusicUtil=require("musicutil")
-local lattice=require("lib/lattice")
 engine.name="Goldeneye2"
 local shift=false
 local script_name="zeitgeist"
@@ -46,6 +47,23 @@ instrument_db.chord={"chords","chord"}
 instrument_db.arp={"arpeggio","arp"}
 instrument_db.seq={"sequence","seq"}
 
+function convert_er_to_riddim(t_er)
+  local r = ""
+  for _,step in ipairs(t_er) do
+    if step==true then
+      r = r.."x"
+    elseif step==false then
+      r = r.."-"
+    end
+  end
+  return r
+end
+
+function euclid_riddim(pulses, steps, shift)
+  local er_seq = Euclid.gen(pulses,steps,shift)
+  local riddim_seq = convert_er_to_riddim(er_seq)
+  return riddim_seq
+end
 
 -- Example data structure
 -- music={}
@@ -87,11 +105,10 @@ drums.techno.bpm={120,125,130,135,140,145}  -- 120-140BPM
 drums.techno.instruments={}
 drums.techno.instruments={
   accent=Drum:new({kind="accent",riddim="x--"}),
-  bass=Instrument:new({play_style="root",sample=_path.audio.."zeitgeist/juno_bass_24.wav",pattern=sequins{"i", "III", sequins{"IV", "V"}, sequins{"VI", "V"}},root=48,scale='Minor',division=1}),
-  -- TODO: have a switch for how the instrument responds to chords
-  -- TODO: example: bass plays the root note
-  -- TODO: melody arp? random?
-  -- TODO: chords: all notes
+  -- TODO: think about having riddim for instrument
+
+  bass=Instrument:new({riddim=euclid_riddim(5,16,1),play_style="bass",sample=_path.audio.."zeitgeist/juno_bass_24.wav",division=1/4}),
+  -- TODO: try out the eulclidean instead of riddim
   bd=Drum:new({riddim="x---x---x---x-x-",velocity=80}),
   sd=Drum:new({riddim="----x-------x---",velocity=80,sample=_path.audio.."zeitgeist/_default/wa_tanzbar_snare_01.wav"}),
   oh=Drum:new({riddim="--x---x---x---x-",velocity=80,sample=_path.audio.."zeitgeist/_default/wa_tanzbar_hihat_01.wav"}),
@@ -112,17 +129,23 @@ drums.techno.instruments={
 
 drums.techno.samples={}
 drums.techno.pattern={}
+-- table.insert(drums.techno.pattern,{
+--   bd="x---x---x---x-x-",
+--   sd="----x-------x---",
+--   ch="---------x------",
+--   oh="--x---x---x---x-"
+-- })
+-- table.insert(drums.techno.pattern,{
+--   bd="x---x-x-x---x---",
+--   sd="----x-------x---",
+--   ch="---------x------",
+--   oh="--x---x---x---x-"
+-- })
 table.insert(drums.techno.pattern,{
-  bd="x---x---x---x-x-",
-  sd="----x-------x---",
-  ch="---------x------",
-  oh="--x---x---x---x-"
-})
-table.insert(drums.techno.pattern,{
-  bd="x---x-x-x---x---",
-  sd="----x-------x---",
-  ch="---------x------",
-  oh="--x---x---x---x-"
+  bd=euclid_riddim(5,16,0),
+  sd=euclid_riddim(2,16,1),
+  ch=euclid_riddim(1,16,12),
+  oh=euclid_riddim(4,16,0)
 })
 -- -- drums.techno.instruments.ch:set_velocity_function(function(beat)
 -- --   -- return ramp based on beat modulo
@@ -203,7 +226,7 @@ drums.vaporwave={}
 drums.vaporwave.bpm={90,95,100,105,110} 
 drums.vaporwave.instruments={
   accent=Drum:new({kind="accent",riddim="x--"}),
-  lead=Instrument:new({sample=_path.audio.."zeitgeist/prophet5_lead_48.wav",decay=0.25,release=0.25,pattern=sequins{sequins{"i"}:count(4), sequins{"III"}:count(4), sequins{"IV", "V"}:count(4), sequins{"VI", "V"}:count(4)},root=48,scale='Minor',division=1/4}),
+  lead=Instrument:new({sample=_path.audio.."zeitgeist/prophet5_lead_48.wav",decay=0.25,release=0.25,division=1/4}),
   -- TODO: (future) instead of setting sequins here, define pattern as {"i,"III",{"IV","V"}} and have Instrument class figure out the sequins (:count(??))
   bd=Drum:new({riddim="x---x---x---x---",velocity=80}),
   sd=Drum:new({riddim="----x-------x-------x-------x-x-",velocity=80,sample="/home/we/dust/audio/zeitgeist/_default/wa_tanzbar_snare_01.wav"}),
@@ -332,33 +355,11 @@ function randomInstrumentSample(inst)
   return rando_sample
 end
 
+
+
 function init()
   start_zeitgeist()
-  local path = _path.audio.."zeitgeist/prophet5_lead_48.wav"
-  local amp = 1
-  local amp_lag = 0
-  local sample_start = 0
-  local sample_end = 1
-  local loop = 0
-  local trig = 1
-  local attack=0.1
-  local decay=2
-  local release=2
 
-  clock.run(function()
-    local sample_note=48
-    local target_note=48
-    -- while true do 
-    --   target_note=target_note+1
-    --   local rate=transpose_to_intonation(sample_note,target_note)
-    --   engine.play2(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig, attack, decay, release)
-    --   local rate=transpose_to_intonation(sample_note,target_note+3)
-    --   engine.play2(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig, attack, decay, release)
-    --   local rate=transpose_to_intonation(sample_note,target_note+7)
-    --   engine.play2(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig, attack, decay, release)
-    --   clock.sleep(5)
-    -- end
-  end)
 end
 
 function start_zeitgeist()
@@ -378,10 +379,22 @@ function start_zeitgeist()
   --   is_accent=drums.current[instrument]:emit(beat)
   -- end
   -- drum:play(accent)
- 
+  local volume=1.0
+  local chords={}
+  chords.parts={}
+  chords.parts[1]=random_song_chord_generator()
+  chords.parts[2]=random_song_chord_generator()
+  chords.changes=sequins{sequins{chords.parts[1]}:count(2),sequins{chords.parts[2]}:count(2)}
+  chords.root=48
+  chords.scale='Minor'
+  chords.division=1
+  chords.notes={}
   for i=0,10 do
       local beat=0
       local division=1/16
+      if i==0 then 
+        division=1
+      end
       local current_chord=nil
       pattern_instrument[i]=my_lattice:new_pattern{
       action=function(t)
@@ -394,16 +407,18 @@ function start_zeitgeist()
           table.sort(ordering)
           for _,instrument in ipairs(ordering) do
             pattern_id=pattern_id+1              
-            if drums.current[instrument].kind=="instrument" and pattern_id==i then 
+            if i==0 then 
+              -- do chord changes
+              chords.notes=MusicUtil.generate_chord_roman(chords.root, chords.scale, chords.changes())
+            elseif drums.current[instrument].kind=="instrument" and pattern_id==i then 
               if pattern_instrument[i].division~=drums.current[instrument].division then 
                 pattern_instrument[i]:set_division(drums.current[instrument].division)
               end
               -- tab.print(drums.current[instrument])
               -- notes_in_current_chord=MusicUtil.generate_chord_roman(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].phrase())
-              notes_in_current_chord=MusicUtil.generate_chord_roman(drums.current[instrument].root, drums.current[instrument].scale, drums.current[instrument].pattern())
               tab.print(notes_in_current_chord)
               -- TODO: need to send all the notes at the same time to make sure the instrument can figure
-              drums.current[instrument]:play(notes_in_current_chord)
+              drums.current[instrument]:play(chords.notes)
               
               -- for _,note in pairs(notes_in_current_chord) do
               --   -- local r = drums.current[instrument].root / note
@@ -419,13 +434,13 @@ function start_zeitgeist()
                 -- tab.print(pattern_instrument[i], drums.current[instrument].swing)
               end
               -- pattern.swing
-              local volume=1.0
+              
               -- How shall I hook up accent to beat? using Drum:xox or a similar class specific to accent? Drum:```?(joke)
               -- if drums.current[instrument].accent(beat)==true then
              
               -- play(drums.current[instrument].sample, volume)
               -- drums.current
-              drums.current[instrument]:play()
+              drums.current[instrument]:play(volume)
               print("drum:",drums.current[instrument].sample)
             elseif drums.current[instrument].kind=="accent" and drums.current[instrument]:emit(beat)==true then
               volume=volume+0.2
@@ -490,6 +505,25 @@ end
 
 function rerun()
   norns.script.load(norns.state.script)
+end
+
+function random_song_chord_generator()
+  local chords_database={
+    {"I","V","vi","IV"},
+    {"I","iii","IV","V"},
+    {"vi","iii","V","I"},
+  }
+  local chosen_chords=chords_database[math.random(1,#chords_database)]
+  shuffle(chosen_chords)
+  return sequins(chosen_chords)
+end
+
+function shuffle(tbl)
+  for i = #tbl, 2, -1 do
+    local j = math.random(i)
+    tbl[i], tbl[j] = tbl[j], tbl[i]
+  end
+  return tbl
 end
 
 -- TODOs

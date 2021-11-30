@@ -18,6 +18,14 @@ function Drum:new(o)
   o.riddim = o.riddim or "x---"
   o.accent = o.accent or "----"
   o.kind = o.kind or "drum"
+  o.amp = o.amp or 1
+  o.amp_lag = o.amp_lag or 0.01
+  o.sample_start = o.sample_start or math.random(1,100)/4000
+  -- TODO: fake round robin sampling by changing the sample start time slightly
+  o.sample_end = o.sample_end or 1
+  o.loop = o.loop or 0
+  o.rate = o.rate or 1
+  o.trig = o.trig or 1
   -- TODO: https://sumire-io.gitlab.io/midi-velocity-curve-generator/
   o.velocity_curve={}
   o.velocity_curve[1]={}
@@ -37,21 +45,20 @@ function Drum:new(o)
   return o
 end
 
-
-function Drum:play()
+function Drum:play(amp)
   -- print(self.sample)
   local path = self.sample
   -- local amp = self.velocity_curve[1][self.velocity+1]
   -- if self.velocity_ramp > 0 then 
   --   amp = (self.beat % self.velocity_ramp)/self.velocity_ramp
   -- end
-  local amp = 1
-  local amp_lag = 0
-  local sample_start = 0
-  local sample_end = 1
-  local loop = 0
-  local rate = 1
-  local trig = 1
+  local amp = amp or self.amp
+  local amp_lag = self.amp_lag
+  local sample_start = self.sample_start
+  local sample_end = self.sample_end
+  local loop = self.loop
+  local rate = self.rate
+  local trig = self.trig
   engine.play(path, amp, amp_lag, sample_start, sample_end, loop, rate, trig)
 end
 

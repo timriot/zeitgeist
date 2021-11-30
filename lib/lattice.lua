@@ -94,13 +94,12 @@ function Lattice:pulse()
   if self.enabled then
     local ppm = self.ppqn * self.meter
     local ordered={}
-    for instrument,_ in pairs(self.pattern) do
+    for instrument,_ in pairs(self.patterns) do
       table.insert(ordered,instrument)
-    end
+    end 
     table.sort(ordered)
-    for id, _ in ipairs(ordered) do
-      pattern=self.pattern[id]
-    -- for id, pattern in pairs(self.patterns) do
+    for _,id in ipairs(ordered) do
+      local pattern=self.patterns[id]
       if pattern.enabled then
         pattern.phase = pattern.phase + 1
         if pattern.phase > (pattern.division * ppm) then
